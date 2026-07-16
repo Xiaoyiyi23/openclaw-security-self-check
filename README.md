@@ -1,0 +1,1 @@
+# openclaw-security-self-check
