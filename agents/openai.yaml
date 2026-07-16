@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenClaw 安全自检"
+  short_description: "自动基线检查、Agent 定向只读复核与正式报告合并"
+  default_prompt: "使用 $openclaw-security-self-check 对当前 OpenClaw 主机执行只读 baseline，逐项完成 NOT_TESTED 的定向复核，并生成合并后的正式报告。"
