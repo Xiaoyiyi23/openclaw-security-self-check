@@ -1,4 +1,4 @@
 interface:
-  display_name: "OpenClaw Security Self-Check"
+  display_name: "Claw Security Self-Check"
   short_description: "Automated baseline checks, targeted read-only Agent review, and formal report merging"
-  default_prompt: "Use $openclaw-security-self-check to run a read-only baseline on the current OpenClaw host, complete targeted review of every NOT_TESTED item, and generate the merged formal report."
+  default_prompt: "Use $claw-security-self-check to run a read-only baseline on the current OpenClaw host, complete targeted review of every NOT_TESTED item, and generate the merged formal report."

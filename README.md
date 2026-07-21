@@ -1,6 +1,6 @@
-# OpenClaw Security Self-Check
+# Claw Security Self-Check
 
-`openclaw-security-self-check` performs an evidence-based, read-only security assessment of the current OpenClaw host. It does not modify OpenClaw configuration, file permissions, services, firewall rules, packages, or users, and it does not create canaries or run active attack probes.
+`claw-security-self-check` performs an evidence-based, read-only security assessment of the current OpenClaw host. It does not modify OpenClaw configuration, file permissions, services, firewall rules, packages, or users, and it does not create canaries or run active attack probes.
 
 ## Use Cases
 
@@ -22,7 +22,7 @@ This Skill performs checks, targeted read-only review by an OpenClaw Agent, and 
 
 In an OpenClaw conversation, ask the Agent to install this Skill directly from GitHub:
 
-> Install the `openclaw-security-self-check` Skill from the [Xiaoyiyi23/openclaw-security-self-check](https://github.com/Xiaoyiyi23/openclaw-security-self-check) GitHub repository. After installation, confirm that Node.js and the `openclaw` CLI are available, and tell me the Skill installation directory and whether it can be invoked with `$openclaw-security-self-check`.
+> Install the `claw-security-self-check` Skill from the [Xiaoyiyi23/claw-security-self-check](https://github.com/Xiaoyiyi23/claw-security-self-check) GitHub repository. After installation, confirm that Node.js and the `openclaw` CLI are available, and tell me the Skill installation directory and whether it can be invoked with `$claw-security-self-check`.
 
 The Agent will install the repository into a Skill directory recognized by the current OpenClaw environment. After installation, invoke it using one of the examples below.
 
@@ -30,17 +30,17 @@ The Agent will install the repository into a Skill directory recognized by the c
 
 Enter the following directly in a conversation:
 
-> Invoke `openclaw-security-self-check` in `baseline` mode to perform a strict read-only security assessment of the current OpenClaw host. Do not remediate findings or modify system state. Return the assessment summary, every non-PASS item, the supporting evidence, and the report file paths.
+> Invoke `claw-security-self-check` in `baseline` mode to perform a strict read-only security assessment of the current OpenClaw host. Do not remediate findings or modify system state. Return the assessment summary, every non-PASS item, the supporting evidence, and the report file paths.
 
 You can also invoke it explicitly with a Skill command:
 
 ```text
-/openclaw-security-self-check Assess the current OpenClaw host in baseline mode. Do not remediate any findings.
+/claw-security-self-check Assess the current OpenClaw host in baseline mode. Do not remediate any findings.
 ```
 
 To assess a specific profile, include the profile name in the request:
 
-> Invoke `openclaw-security-self-check` to run a baseline security assessment of the OpenClaw profile `prod`. Keep the assessment read-only and return the JSON and Markdown reports.
+> Invoke `claw-security-self-check` to run a baseline security assessment of the OpenClaw profile `prod`. Keep the assessment read-only and return the JSON and Markdown reports.
 
 ## Operating Modes
 

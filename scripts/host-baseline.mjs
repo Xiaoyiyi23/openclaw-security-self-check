@@ -1756,7 +1756,7 @@ async function main() {
     const report = {
       schemaVersion: SCHEMA_VERSION,
       checklistVersion: CHECKLIST_VERSION,
-      skill: { name: "openclaw-security-self-check", version: SKILL_VERSION },
+      skill: { name: "claw-security-self-check", version: SKILL_VERSION },
       mode: "baseline",
       generatedAt: finishedAt,
       startedAt,

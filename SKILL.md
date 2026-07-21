@@ -1,10 +1,10 @@
 ---
-name: openclaw-security-self-check
+name: claw-security-self-check
 description: "Perform a strict, evidence-based, read-only security assessment of the current OpenClaw host, review each NOT_TESTED item through targeted OpenClaw Agent investigation, and merge structured review evidence into a formal audit report. Also use this Skill to generate reports offline from existing baseline JSON and manual-review JSON files."
 metadata: { "openclaw": { "requires": { "bins": ["node", "openclaw"] } } }
 ---
 
-# OpenClaw Security Self-Check
+# Claw Security Self-Check
 
 Assess only facts that can be verified from read-only configuration, CLI output, process information, and file metadata on the current host. First use deterministic scripts to collect routine evidence, then have the OpenClaw Agent perform targeted read-only review of `NOT_TESTED` observations, and finally use the report script to validate and merge the structured review evidence.
 
