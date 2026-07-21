@@ -87,7 +87,7 @@ node scripts/report-merge.mjs \
 
 ### report-only
 
-This mode does not invoke OpenClaw or reassess the host. It reads an existing baseline JSON file, optionally merges an existing manual-review JSON file, validates evidence binding and check structure, recalculates the summary, and generates archival JSON and Chinese-language Markdown reports.
+This mode does not invoke OpenClaw or reassess the host. It reads an existing baseline JSON file, optionally merges an existing manual-review JSON file, validates evidence binding and check structure, recalculates the summary, and generates archival JSON and English-language Markdown reports.
 
 ## Report Statuses
 
@@ -155,9 +155,9 @@ No. The Skill only generates evidence and reports. When remediation is required,
 
 No. Recommendations in the report only explain the conclusions of the read-only audit—for example, recommending tighter `tools.agentToAgent.allow` settings or stronger protection for `.env` permissions. Any configuration, permission, or service change must be performed as a separate task.
 
-### Why does the report retain English statuses and configuration fields?
+### Why does the report retain fixed status names and configuration fields?
 
-Statuses such as `PASS`, check IDs, JSON fields, and OpenClaw configuration keys are stable machine interfaces and remain in English for reliable script processing. User-facing explanations, headings, and operating instructions in the generated report are written in Chinese.
+Statuses such as `PASS`, check IDs, JSON fields, and OpenClaw configuration keys are stable machine interfaces and remain unchanged for reliable script processing. User-facing explanations, headings, and operating instructions in the generated report are written in English.
 
 ## More Information
 

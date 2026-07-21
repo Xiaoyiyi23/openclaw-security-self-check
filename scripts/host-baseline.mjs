@@ -12,7 +12,7 @@ import path from "node:path";
 import process from "node:process";
 
 const SCHEMA_VERSION = 2;
-const CHECKLIST_VERSION = "OpenClaw类产品安全_Checklist_V1.0";
+const CHECKLIST_VERSION = "OpenClaw Product Security Checklist V1.0";
 const SKILL_VERSION = "1.5.0";
 const DEFAULT_PORT = 18789;
 const TIMEOUT_MS = 90_000;
@@ -25,20 +25,20 @@ const STATUS_RANK = {
   ERROR: 5,
 };
 const CHECKS = [
-  ["OpenClaw-1-1", "网络暴露面最小化"],
-  ["OpenClaw-1-2", "认证与凭证安全"],
-  ["OpenClaw-2-1", "执行环境沙箱隔离"],
-  ["OpenClaw-2-2", "工作区文件系统防护"],
-  ["OpenClaw-3-1", "系统指令执行严格限制"],
-  ["OpenClaw-3-2", "高危工具强制人工审批介入"],
-  ["OpenClaw-3-3", "工具与运行权限最小化"],
-  ["OpenClaw-4-1", "禁用生产环境核心组件自动更新"],
-  ["OpenClaw-5-3", "限制会话历史长度与历史压缩"],
-  ["OpenClaw-7-1", "审计日志完整性"],
-  ["OpenClaw-7-2", "配置异常行为监控与告警"],
-  ["OpenClaw-7-3", "敏感信息脱敏"],
-  ["OpenClaw-9-3", "核心组件更新源验证与防投毒"],
-  ["OpenClaw-11-1", "IM机器人接入强制身份鉴权与白名单隔离"],
+  ["OpenClaw-1-1", "Minimize Network Exposure"],
+  ["OpenClaw-1-2", "Authentication and Credential Security"],
+  ["OpenClaw-2-1", "Execution Sandbox Isolation"],
+  ["OpenClaw-2-2", "Workspace Filesystem Protection"],
+  ["OpenClaw-3-1", "Strict System Command Restrictions"],
+  ["OpenClaw-3-2", "Mandatory Human Approval for High-Risk Tools"],
+  ["OpenClaw-3-3", "Least-Privilege Tools and Runtime Permissions"],
+  ["OpenClaw-4-1", "Disable Automatic Core Updates in Production"],
+  ["OpenClaw-5-3", "Limit and Compact Session History"],
+  ["OpenClaw-7-1", "Audit Log Integrity"],
+  ["OpenClaw-7-2", "Configuration Anomaly Monitoring and Alerts"],
+  ["OpenClaw-7-3", "Sensitive-Information Redaction"],
+  ["OpenClaw-9-3", "Core Update-Source Verification and Supply-Chain Protection"],
+  ["OpenClaw-11-1", "Mandatory Authentication and Allowlist Isolation for IM Bots"],
 ];
 const LOG_LEVELS = new Set(["silent", "fatal", "error", "warn", "info", "debug", "trace"]);
 const WINDOWS_SENSITIVE_RIGHTS = 1 | 2 | 4 | 8 | 16 | 64 | 128 | 256 | 65_536 | 262_144 | 524_288;
@@ -63,7 +63,7 @@ function parseArgs(argv) {
     const arg = argv[index];
     const value = () => {
       if (index + 1 >= argv.length) {
-        throw new Error(`${arg} 需要一个值`);
+        throw new Error(`${arg} requires a value`);
       }
       index += 1;
       return argv[index];
@@ -87,7 +87,7 @@ function parseArgs(argv) {
     } else if (arg === "--output") {
       options.output = path.resolve(value());
     } else {
-      throw new Error(`未知参数：${arg}`);
+      throw new Error(`Unknown argument: ${arg}`);
     }
   }
   options.configPath ||= path.join(options.stateDir, "openclaw.json");
@@ -95,17 +95,17 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`用法：node host-baseline.mjs [选项]
+  console.log(`Usage: node host-baseline.mjs [options]
 
-选项：
-  --json                       输出 JSON，不输出人类可读摘要
-  --output <path>              将 JSON 报告写入文件
-  --openclaw-bin <path>        OpenClaw 可执行文件（默认：openclaw）
-  --openclaw-arg <arg>         OpenClaw 根参数；可重复使用
-  --state-dir <path>           OpenClaw 状态目录
-  --config-path <path>         OpenClaw 配置文件路径
-  --log-path <path>            手动确认的当前运行时日志文件路径
-  -h, --help                   显示帮助`);
+Options:
+  --json                       Output JSON without a human-readable summary
+  --output <path>              Write the JSON report to a file
+  --openclaw-bin <path>        OpenClaw executable (default: openclaw)
+  --openclaw-arg <arg>         OpenClaw root argument; may be repeated
+  --state-dir <path>           OpenClaw state directory
+  --config-path <path>         OpenClaw configuration-file path
+  --log-path <path>            Manually confirmed current runtime log-file path
+  -h, --help                   Show help`);
 }
 
 function findOnWindowsPath(command) {
@@ -169,7 +169,7 @@ function failure(result) {
 function parseJson(text) {
   const trimmed = text.trim();
   if (!trimmed) {
-    throw new Error("JSON 输出为空");
+    throw new Error("JSON output is empty");
   }
   return JSON.parse(trimmed);
 }
@@ -184,7 +184,7 @@ function configGet(options, key) {
     if (/not found|does not exist|missing/iu.test(`${result.stdout}\n${result.stderr}`)) {
       return undefined;
     }
-    throw new Error(`读取配置 ${key} 失败：${failure(result)}`);
+    throw new Error(`Failed to read configuration ${key}: ${failure(result)}`);
   }
   return parseJson(result.stdout);
 }
@@ -198,7 +198,7 @@ function createReportChecks() {
 function observe(checks, id, status, message, evidence) {
   const check = checks.get(id);
   if (!check) {
-    throw new Error(`未知检查项：${id}`);
+    throw new Error(`Unknown check: ${id}`);
   }
   check.observations.push({
     status,
@@ -475,9 +475,9 @@ function windowsAclOwnerKnown(acl) {
 
 function checkPathPermissions(checks, id, label, target, expectedType, expectedMode) {
   const meta = fileMetadata(target);
-  const expectedTypeLabel = expectedType === "directory" ? "目录" : "文件";
+  const expectedTypeLabel = expectedType === "directory" ? "directory" : "file";
   if (!meta.exists) {
-    return observe(checks, id, "WARN", `${label}不存在或无法访问`, {
+    return observe(checks, id, "WARN", `${label} does not exist or is inaccessible`, {
       path: target,
     });
   }
@@ -485,7 +485,7 @@ function checkPathPermissions(checks, id, label, target, expectedType, expectedM
   if (process.platform === "win32") {
     const acl = collectWindowsAcl(target);
     if (acl.error) {
-      return observe(checks, id, "NOT_TESTED", `${label}的 Windows ACL 收集失败：${acl.error}`, {
+      return observe(checks, id, "NOT_TESTED", `Failed to collect the Windows ACL for ${label}: ${acl.error}`, {
         path: target,
       });
     }
@@ -495,7 +495,7 @@ function checkPathPermissions(checks, id, label, target, expectedType, expectedM
       checks,
       id,
       typeOk && !meta.symlink && ownerKnown && !unsafe.length ? "PASS" : "FAIL",
-      `${label}类型=${typeOk ? expectedTypeLabel : "异常"}；已识别所有者=${String(ownerKnown)}；不受信任的敏感 ACL 条目=${unsafe.length}`,
+      `${label} type=${typeOk ? expectedTypeLabel : "unexpected"}; recognized owner=${String(ownerKnown)}; untrusted sensitive ACL entries=${unsafe.length}`,
       { path: target, expectedType, unsafeSids: [...new Set(unsafe.map((rule) => rule.sid))] },
     );
   }
@@ -504,7 +504,7 @@ function checkPathPermissions(checks, id, label, target, expectedType, expectedM
     checks,
     id,
     typeOk && modeOk && !meta.symlink ? "PASS" : "FAIL",
-    `${label}类型/权限模式=${typeOk ? expectedTypeLabel : "异常"}/0${meta.mode.toString(8)}`,
+    `${label} type/permission mode=${typeOk ? expectedTypeLabel : "unexpected"}/0${meta.mode.toString(8)}`,
     {
       path: target,
       expectedType,
@@ -516,7 +516,7 @@ function checkPathPermissions(checks, id, label, target, expectedType, expectedM
 function checkOptionalPathPermissions(checks, id, label, target, expectedType, expectedMode) {
   const meta = fileMetadata(target);
   if (!meta.exists) {
-    return observe(checks, id, "NOT_APPLICABLE", `${label}不存在，跳过权限检查`, {
+    return observe(checks, id, "NOT_APPLICABLE", `${label} does not exist; skipping the permission check`, {
       path: target,
     });
   }
@@ -565,7 +565,7 @@ function execModeFromPolicy(security, ask) {
 function execPolicies(execPolicy, sandboxes) {
   const scopes = execPolicy?.effectivePolicy?.scopes;
   if (!Array.isArray(scopes)) {
-    throw new Error("exec-policy show 未返回 effectivePolicy.scopes 数组");
+    throw new Error("exec-policy show did not return an effectivePolicy.scopes array");
   }
   return scopes.map((scope) => {
     const requestedHost = scope.host?.requested;
@@ -721,12 +721,12 @@ function toolScopeObservation(scope) {
     wildcard(alsoAllow) ||
     scope.policyLayers.some((layer) => wildcard(layer.allow));
   if (!effectiveRestrictive && explicitlyBroad) {
-    return { status: "FAIL", message: `${scope.label}：有效策略为通配/完整工具访问` };
+    return { status: "FAIL", message: `${scope.label}: the effective policy grants wildcard/full tool access` };
   }
   if (!effectiveRestrictive && !scope.profile && alsoAllow.length) {
     return {
       status: "FAIL",
-      message: `${scope.label}：没有限制性 profile/allowlist 时配置 alsoAllow，仍会保留默认工具面`,
+      message: `${scope.label}: alsoAllow is configured without a restrictive profile/allowlist, so the default tool surface remains available`,
     };
   }
   const highRisk = alsoAllow.filter((value) =>
@@ -735,23 +735,23 @@ function toolScopeObservation(scope) {
   if (highRisk.length) {
     return {
       status: "WARN",
-      message: `${scope.label}：alsoAllow 增加了高风险工具：${highRisk.join(", ")}`,
+      message: `${scope.label}: alsoAllow adds high-risk tools: ${highRisk.join(", ")}`,
     };
   }
   if (effectiveRestrictive) {
-    const suffix = alsoAllow.length ? `，另有 ${alsoAllow.length} 个显式 alsoAllow 条目` : "";
+    const suffix = alsoAllow.length ? `, plus ${alsoAllow.length} explicit alsoAllow entries` : "";
     return {
       status: "PASS",
-      message: `${scope.label}：已配置限制性 profile 或显式 allowlist${suffix}`,
+      message: `${scope.label}: a restrictive profile or explicit allowlist is configured${suffix}`,
     };
   }
   if (scope.policyLayers.some((layer) => Array.isArray(layer.deny) && layer.deny.length > 0)) {
     return {
       status: "WARN",
-      message: `${scope.label}：仅使用 deny 的策略比 allowlist 更宽松`,
+      message: `${scope.label}: a deny-only policy is broader than an allowlist`,
     };
   }
-  return { status: "WARN", message: `${scope.label}：未配置显式最小权限工具策略` };
+  return { status: "WARN", message: `${scope.label}: no explicit least-privilege tool policy is configured` };
 }
 
 function agentToAgentObservation(tools) {
@@ -759,7 +759,7 @@ function agentToAgentObservation(tools) {
   if (a2a?.enabled !== true) {
     return {
       status: "PASS",
-      message: "tools.agentToAgent.enabled=false，跨 Agent 会话访问未启用",
+      message: "tools.agentToAgent.enabled=false; cross-Agent session access is disabled",
     };
   }
   const rawAllow = Array.isArray(a2a.allow) ? a2a.allow : [];
@@ -768,31 +768,31 @@ function agentToAgentObservation(tools) {
     return {
       status: "FAIL",
       message:
-        "tools.agentToAgent.enabled=true 但 allow 未配置；当前 OpenClaw 会允许任意 Agent 匹配，建议设置明确 agent id 列表或关闭该功能",
+        "tools.agentToAgent.enabled=true but allow is unset; the current OpenClaw policy matches any Agent. Configure an explicit Agent ID list or disable this feature",
     };
   }
   if (!allow.length) {
     return {
       status: "WARN",
-      message: "tools.agentToAgent.allow 只包含空值；跨 Agent 访问实际不可用，请清理配置",
+      message: "tools.agentToAgent.allow contains only empty values; cross-Agent access is effectively unavailable. Clean up the configuration",
     };
   }
   if (allow.includes("*")) {
     return {
       status: "FAIL",
-      message: 'tools.agentToAgent.allow 包含 "*"，允许任意 Agent 互访；建议改为明确 agent id 列表',
+      message: 'tools.agentToAgent.allow contains "*", allowing any Agent to access any other Agent. Use an explicit Agent ID list instead',
     };
   }
   const wildcardPatterns = allow.filter((value) => value.includes("*"));
   if (wildcardPatterns.length) {
     return {
       status: "WARN",
-      message: `tools.agentToAgent.allow 包含 ${wildcardPatterns.length} 个通配模式，请确认范围足够窄`,
+      message: `tools.agentToAgent.allow contains ${wildcardPatterns.length} wildcard patterns; confirm that their scope is sufficiently narrow`,
     };
   }
   return {
     status: "PASS",
-    message: `tools.agentToAgent.allow 已限制为 ${allow.length} 个明确条目`,
+    message: `tools.agentToAgent.allow is restricted to ${allow.length} explicit entries`,
   };
 }
 
@@ -852,10 +852,10 @@ function parseReleaseVersion(version) {
 
 function verifyNpmRegistrySignatures({ integrity, keys, packageName, signatures, version }) {
   if (typeof integrity !== "string" || !integrity.startsWith("sha512-")) {
-    throw npmVerificationFailure(`npm registry 未返回 ${packageName} 的 SHA-512 integrity`);
+    throw npmVerificationFailure(`The npm registry did not return SHA-512 integrity for ${packageName}`);
   }
   if (!Array.isArray(signatures) || signatures.length === 0) {
-    throw npmVerificationFailure(`npm registry 未返回 ${packageName}@${version} 的签名`);
+    throw npmVerificationFailure(`The npm registry did not return signatures for ${packageName}@${version}`);
   }
 
   const payload = `${packageName}@${version}:${integrity}`;
@@ -883,16 +883,16 @@ function verifyNpmRegistrySignatures({ integrity, keys, packageName, signatures,
         return;
       }
     } catch {
-      // 尝试 registry 返回的其余签名和密钥。
+      // Try the remaining signatures and keys returned by the registry.
     }
   }
-  throw npmVerificationFailure(`${packageName}@${version} 的 npm registry 签名验证失败`);
+  throw npmVerificationFailure(`npm registry signature verification failed for ${packageName}@${version}`);
 }
 
 function resolveNpmProvenancePolicy(statement, version) {
   const parsedVersion = parseReleaseVersion(version);
   if (!parsedVersion) {
-    throw npmVerificationFailure(`不支持的 OpenClaw 发布版本：${version}`);
+    throw npmVerificationFailure(`Unsupported OpenClaw release version: ${version}`);
   }
   const workflow = statement?.predicate?.buildDefinition?.externalParameters?.workflow;
   const workflowRef = workflow?.ref;
@@ -911,7 +911,7 @@ function resolveNpmProvenancePolicy(statement, version) {
     statement?.predicate?.runDetails?.builder?.id !== NPM_PROVENANCE_BUILDER_ID
   ) {
     throw npmVerificationFailure(
-      `${version} 的 npm provenance 未绑定受信任的 OpenClaw GitHub 发布工作流`,
+      `npm provenance for ${version} is not bound to a trusted OpenClaw GitHub release workflow`,
     );
   }
   return {
@@ -926,10 +926,10 @@ async function readBoundedJson(url) {
     signal: AbortSignal.timeout(NPM_REGISTRY_REQUEST_TIMEOUT_MS),
   });
   if (!response.ok) {
-    throw new Error(`npm registry 请求失败：HTTP ${response.status}`);
+    throw new Error(`npm registry request failed: HTTP ${response.status}`);
   }
   if (!response.body) {
-    throw new Error("npm registry 响应正文为空");
+    throw new Error("The npm registry response body is empty");
   }
   const reader = response.body.getReader();
   const chunks = [];
@@ -942,14 +942,14 @@ async function readBoundedJson(url) {
     size += value.byteLength;
     if (size > NPM_REGISTRY_RESPONSE_BODY_MAX_BYTES) {
       await reader.cancel();
-      throw npmVerificationFailure("npm registry 响应超过 4 MiB 安全上限");
+      throw npmVerificationFailure("The npm registry response exceeds the 4 MiB safety limit");
     }
     chunks.push(Buffer.from(value));
   }
   try {
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));
   } catch {
-    throw npmVerificationFailure("npm registry 返回了无效 JSON");
+    throw npmVerificationFailure("The npm registry returned invalid JSON");
   }
 }
 
@@ -960,7 +960,7 @@ async function loadSigstoreVerify() {
       return sigstore.verify;
     }
   } catch {
-    // 继续从当前或全局 OpenClaw 安装的依赖目录查找。
+    // Continue searching dependency directories for the current or global OpenClaw installation.
   }
   for (const args of [["root"], ["root", "-g"]]) {
     const result = run("npm", args, 30_000);
@@ -976,12 +976,12 @@ async function loadSigstoreVerify() {
         return sigstore.verify;
       }
     } catch {
-      // 继续尝试下一个依赖位置。
+      // Continue with the next dependency location.
     }
   }
   throw new NpmVerificationError(
     "NOT_TESTED",
-    "无法加载 OpenClaw 的 sigstore 依赖，未完成 provenance 密码学验证",
+    "Unable to load OpenClaw's sigstore dependency; provenance cryptographic verification was not completed",
   );
 }
 
@@ -1027,21 +1027,21 @@ async function verifyNpmProvenanceAttestation({ attestations, integrity, package
   }
   if (verificationError) {
     throw npmVerificationFailure(
-      `${packageName}@${version} 的 Sigstore provenance 验证失败：${verificationError.message}`,
+      `Sigstore provenance verification failed for ${packageName}@${version}: ${verificationError.message}`,
     );
   }
   if (policyError) {
     throw policyError;
   }
   throw npmVerificationFailure(
-    `${packageName}@${version} 的 provenance 与包版本或 SHA-512 integrity 不匹配`,
+    `The provenance for ${packageName}@${version} does not match the package version or SHA-512 integrity`,
   );
 }
 
 async function collectPackageProvenance(versionOutput) {
   const version = parseOpenClawVersion(versionOutput);
   if (!version) {
-    return { status: "NOT_TESTED", error: "无法解析用于 npm 来源查验的 OpenClaw 版本" };
+    return { status: "NOT_TESTED", error: "Unable to parse the OpenClaw version required for npm source verification" };
   }
   let registry;
   try {
@@ -1051,7 +1051,7 @@ async function collectPackageProvenance(versionOutput) {
     }
     registry = new URL(registryResult.stdout.trim());
     if (registry.protocol !== "https:") {
-      throw npmVerificationFailure(`npm registry 必须使用 HTTPS：${registry.origin}`);
+      throw npmVerificationFailure(`The npm registry must use HTTPS: ${registry.origin}`);
     }
     if (!registry.pathname.endsWith("/")) {
       registry.pathname = `${registry.pathname}/`;
@@ -1078,7 +1078,7 @@ async function collectPackageProvenance(versionOutput) {
       typeof attestationUrl !== "string" ||
       !attestationUrl
     ) {
-      throw npmVerificationFailure(`${packageName}@${version} 缺少 SLSA provenance 元数据`);
+      throw npmVerificationFailure(`${packageName}@${version} is missing SLSA provenance metadata`);
     }
     const parsedAttestationUrl = new URL(attestationUrl);
     const attestationPrefix = new URL("-/npm/v1/attestations/", registry).pathname;
@@ -1087,14 +1087,14 @@ async function collectPackageProvenance(versionOutput) {
       parsedAttestationUrl.origin !== registry.origin ||
       !parsedAttestationUrl.pathname.startsWith(attestationPrefix)
     ) {
-      throw npmVerificationFailure(`${packageName}@${version} 返回了不受信任的 attestation URL`);
+      throw npmVerificationFailure(`${packageName}@${version} returned an untrusted attestation URL`);
     }
     const attestationDocument = await readBoundedJson(parsedAttestationUrl);
     if (
       !Array.isArray(attestationDocument?.attestations) ||
       !attestationDocument.attestations.length
     ) {
-      throw npmVerificationFailure(`${packageName}@${version} 缺少 provenance attestation`);
+      throw npmVerificationFailure(`${packageName}@${version} is missing a provenance attestation`);
     }
     await verifyNpmProvenanceAttestation({
       packageName,
@@ -1161,23 +1161,23 @@ function evaluate(
     checks,
     "OpenClaw-1-1",
     ["lan", "auto", "custom"].includes(bind) ? "FAIL" : bind === "tailnet" ? "WARN" : "PASS",
-    `Gateway 有效绑定模式=${bind}`,
+    `Effective Gateway bind mode=${bind}`,
   );
   observe(
     checks,
     "OpenClaw-1-1",
     port === DEFAULT_PORT ? "WARN" : "PASS",
-    `Gateway 有效端口=${port}`,
+    `Effective Gateway port=${port}`,
   );
   const mdns = config.discovery?.mdns?.mode || "minimal";
   observe(
     checks,
     "OpenClaw-1-1",
     mdnsStatus(mdns, bind),
-    `discovery.mdns.mode=${mdns}${mdns === "minimal" ? "（OpenClaw 推荐值）" : ""}`,
+    `discovery.mdns.mode=${mdns}${mdns === "minimal" ? " (OpenClaw recommended value)" : ""}`,
   );
   if (listeners.error) {
-    observe(checks, "OpenClaw-1-1", "ERROR", `监听器信息收集失败：${listeners.error}`);
+    observe(checks, "OpenClaw-1-1", "ERROR", `Failed to collect listener information: ${listeners.error}`);
   } else {
     const browser = browserPorts(port, config.browser);
     const relevant = listeners.listeners.filter(
@@ -1192,7 +1192,7 @@ function evaluate(
         checks,
         "OpenClaw-1-1",
         "NOT_TESTED",
-        "Gateway/Browser 当前未监听，无法验证运行时绑定地址",
+        "Gateway/Browser is not currently listening, so the runtime bind address cannot be verified",
       );
     }
     for (const item of relevant) {
@@ -1212,7 +1212,7 @@ function evaluate(
     checks,
     "OpenClaw-1-2",
     authMode === "none" ? "FAIL" : authMode ? "PASS" : "WARN",
-    `gateway.auth.mode=${authMode || "未设置"}`,
+    `gateway.auth.mode=${authMode || "unset"}`,
   );
   addAudit(checks, "OpenClaw-1-2", audit, [
     "gateway.token_too_short",
@@ -1220,7 +1220,7 @@ function evaluate(
     /^config\.secrets/u,
   ]);
   if (!sandboxes.length) {
-    observe(checks, "OpenClaw-2-1", "ERROR", "未获得沙箱解释结果");
+    observe(checks, "OpenClaw-2-1", "ERROR", "No sandbox-explain result was obtained");
   }
   for (const sandbox of sandboxes) {
     const state = sandbox.sandbox || {};
@@ -1228,7 +1228,7 @@ function evaluate(
       checks,
       "OpenClaw-2-1",
       state.mode === "all" && state.sessionIsSandboxed === true ? "PASS" : "FAIL",
-      `${sandbox.agentId || "默认 Agent"}：mode=${state.mode || "off"}，sandboxed=${String(state.sessionIsSandboxed)}`,
+      `${sandbox.agentId || "default Agent"}: mode=${state.mode || "off"}, sandboxed=${String(state.sessionIsSandboxed)}`,
     );
   }
   addAudit(checks, "OpenClaw-2-1", audit, [/^sandbox\./u]);
@@ -1245,7 +1245,7 @@ function evaluate(
       checks,
       "OpenClaw-2-2",
       effective ? "PASS" : "FAIL",
-      `${agent.id}：有效 workspaceOnly=${String(effective)}`,
+      `${agent.id}: effective workspaceOnly=${String(effective)}`,
     );
   }
   for (const sandbox of sandboxes) {
@@ -1254,15 +1254,15 @@ function evaluate(
       checks,
       "OpenClaw-2-2",
       ["none", "ro"].includes(access) ? "PASS" : "WARN",
-      `${sandbox.agentId || "默认 Agent"}：workspaceAccess=${access || "未知"}`,
+      `${sandbox.agentId || "default Agent"}: workspaceAccess=${access || "unknown"}`,
     );
   }
-  checkPathPermissions(checks, "OpenClaw-2-2", "状态目录", options.stateDir, "directory", 0o700);
-  checkPathPermissions(checks, "OpenClaw-2-2", "配置文件", options.configPath, "file", 0o600);
+  checkPathPermissions(checks, "OpenClaw-2-2", "State directory", options.stateDir, "directory", 0o700);
+  checkPathPermissions(checks, "OpenClaw-2-2", "Configuration file", options.configPath, "file", 0o600);
   checkOptionalPathPermissions(
     checks,
     "OpenClaw-2-2",
-    "状态目录 .env",
+    "State-directory .env",
     path.join(options.stateDir, ".env"),
     "file",
     0o600,
@@ -1272,13 +1272,13 @@ function evaluate(
       checks,
       "OpenClaw-3-1",
       "ERROR",
-      `exec-policy show 执行失败：${runtimeEvidence.execPolicyError}`,
+      `exec-policy show failed: ${runtimeEvidence.execPolicyError}`,
     );
     observe(
       checks,
       "OpenClaw-3-2",
       "ERROR",
-      `exec-policy show 执行失败：${runtimeEvidence.execPolicyError}`,
+      `exec-policy show failed: ${runtimeEvidence.execPolicyError}`,
     );
   } else {
     try {
@@ -1289,7 +1289,7 @@ function evaluate(
           checks,
           "OpenClaw-3-1",
           policy.security === "full" ? "FAIL" : restricted ? "PASS" : "NOT_TESTED",
-          `${entry.label}：host=${policy.host || "未知"}，security=${policy.security || "未知"}，ask=${policy.ask || "未知"}，mode=${policy.mode || "推导值"}`,
+          `${entry.label}: host=${policy.host || "unknown"}, security=${policy.security || "unknown"}, ask=${policy.ask || "unknown"}, mode=${policy.mode || "derived"}`,
         );
         const human =
           policy.security === "deny" ||
@@ -1302,7 +1302,7 @@ function evaluate(
             : human
               ? "PASS"
               : "FAIL",
-          `${entry.label}：host=${policy.host || "未知"}，ask=${policy.ask || "off"}，autoReview=${String(policy.autoReview === true)}`,
+          `${entry.label}: host=${policy.host || "unknown"}, ask=${policy.ask || "off"}, autoReview=${String(policy.autoReview === true)}`,
         );
       }
     } catch (error) {
@@ -1316,11 +1316,11 @@ function evaluate(
     "OpenClaw-3-1",
     broad.length ? "FAIL" : "PASS",
     broad.length
-      ? `发现 ${broad.length} 个宽泛的 exec allowlist 模式`
-      : "未发现宽泛的 exec allowlist 模式",
+      ? `Found ${broad.length} broad exec allowlist patterns`
+      : "No broad exec allowlist patterns were found",
   );
   if (approvals.error) {
-    observe(checks, "OpenClaw-3-1", "ERROR", `exec approvals 解析失败：${approvals.error}`);
+    observe(checks, "OpenClaw-3-1", "ERROR", `Failed to parse exec approvals: ${approvals.error}`);
   }
   addAudit(checks, "OpenClaw-3-1", audit, [/^tools\.exec/u, /^gateway\.nodes/u]);
   const globalTools = config.tools || {};
@@ -1337,9 +1337,9 @@ function evaluate(
     observe(checks, "OpenClaw-3-3", result.status, result.message);
   }
   if (processes.error) {
-    observe(checks, "OpenClaw-3-3", "ERROR", `进程所有者信息收集失败：${processes.error}`);
+    observe(checks, "OpenClaw-3-3", "ERROR", `Failed to collect process-owner information: ${processes.error}`);
   } else if (!processes.owners.length) {
-    observe(checks, "OpenClaw-3-3", "NOT_TESTED", "未发现正在运行的 OpenClaw 进程");
+    observe(checks, "OpenClaw-3-3", "NOT_TESTED", "No running OpenClaw process was found");
   } else {
     for (const owner of processes.owners) {
       const privileged = isPrivilegedProcessOwner(owner);
@@ -1347,7 +1347,7 @@ function evaluate(
         checks,
         "OpenClaw-3-3",
         privileged === undefined ? "NOT_TESTED" : privileged ? "FAIL" : "PASS",
-        `PID ${owner.pid} 所有者=${owner.domain ? `${owner.domain}\\` : ""}${owner.user || "未知"}`,
+        `PID ${owner.pid} owner=${owner.domain ? `${owner.domain}\\` : ""}${owner.user || "unknown"}`,
       );
     }
   }
@@ -1365,12 +1365,12 @@ function evaluate(
     checks,
     "OpenClaw-4-1",
     effectiveAuto ? "FAIL" : autoConfigured ? "WARN" : "PASS",
-    `有效自动更新=${String(effectiveAuto)}${disabledByEnv ? "（已被 OPENCLAW_NO_AUTO_UPDATE 禁用）" : ""}`,
+    `Effective automatic updates=${String(effectiveAuto)}${disabledByEnv ? " (disabled by OPENCLAW_NO_AUTO_UPDATE)" : ""}`,
   );
 
   const limits = collectHistoryLimits(config);
   if (!limits.length) {
-    observe(checks, "OpenClaw-5-3", "WARN", "未发现显式频道历史记录限制");
+    observe(checks, "OpenClaw-5-3", "WARN", "No explicit Channel history limit was found");
   }
   for (const limit of limits) {
     observe(
@@ -1385,7 +1385,7 @@ function evaluate(
     checks,
     "OpenClaw-5-3",
     contextTokensStatus(contextTokens),
-    `agents.defaults.contextTokens=${contextTokens ?? "未设置"}`,
+    `agents.defaults.contextTokens=${contextTokens ?? "unset"}`,
   );
   const compaction = config.agents?.defaults?.compaction;
   observe(
@@ -1394,7 +1394,7 @@ function evaluate(
     compaction && ["default", "safeguard"].includes(compaction.mode || "safeguard")
       ? "PASS"
       : "WARN",
-    `compaction.mode=${compaction?.mode || "隐式默认值"}`,
+    `compaction.mode=${compaction?.mode || "implicit default"}`,
   );
 
   const log = effectiveLogLevel(config);
@@ -1402,30 +1402,30 @@ function evaluate(
     checks,
     "OpenClaw-7-1",
     log.level === "silent" ? "FAIL" : ["fatal", "error"].includes(log.level) ? "WARN" : "PASS",
-    `有效日志级别=${log.level}，来源=${log.source}`,
+    `Effective log level=${log.level}, source=${log.source}`,
   );
   const logPath = options.logPath || config.logging?.file;
   if (logPath) {
     checkPathPermissions(
       checks,
       "OpenClaw-7-1",
-      "日志文件",
+      "Log file",
       path.resolve(logPath.replace(/^~(?=$|[\\/])/u, os.homedir())),
       "file",
       0o600,
     );
   } else {
-    observe(checks, "OpenClaw-7-1", "NOT_TESTED", "日志文件路径由运行时推导，尚未验证文件权限");
+    observe(checks, "OpenClaw-7-1", "NOT_TESTED", "The log-file path is derived at runtime and its permissions have not been verified");
   }
   if (auditError) {
-    observe(checks, "OpenClaw-7-2", "ERROR", `安全审计失败：${auditError}`);
+    observe(checks, "OpenClaw-7-2", "ERROR", `Security audit failed: ${auditError}`);
   } else {
-    observe(checks, "OpenClaw-7-2", "PASS", "openclaw security audit --deep 已完成", audit.summary);
+    observe(checks, "OpenClaw-7-2", "PASS", "openclaw security audit --deep completed", audit.summary);
     if ((audit.summary?.critical || 0) > 0) {
-      observe(checks, "OpenClaw-7-2", "FAIL", `${audit.summary.critical} 个严重级别审计发现`);
+      observe(checks, "OpenClaw-7-2", "FAIL", `${audit.summary.critical} critical-severity audit findings`);
     }
     if ((audit.summary?.warn || 0) > 0) {
-      observe(checks, "OpenClaw-7-2", "WARN", `${audit.summary.warn} 个警告级别审计发现`);
+      observe(checks, "OpenClaw-7-2", "WARN", `${audit.summary.warn} warning-severity audit findings`);
     }
   }
   observe(
@@ -1446,20 +1446,20 @@ function evaluate(
     "OpenClaw-7-3",
     "PASS",
     config.logging?.redactPatterns?.length
-      ? `已配置 ${config.logging.redactPatterns.length} 个自定义脱敏模式`
-      : "内置敏感值脱敏已启用，未配置自定义模式",
+      ? `${config.logging.redactPatterns.length} custom redaction patterns are configured`
+      : "Built-in sensitive-value redaction is enabled and no custom pattern is configured",
   );
   if (logPath) {
     checkPathPermissions(
       checks,
       "OpenClaw-7-3",
-      "日志文件",
+      "Log file",
       path.resolve(logPath.replace(/^~(?=$|[\\/])/u, os.homedir())),
       "file",
       0o600,
     );
   } else {
-    observe(checks, "OpenClaw-7-3", "NOT_TESTED", "日志文件路径由运行时推导，尚未验证文件权限");
+    observe(checks, "OpenClaw-7-3", "NOT_TESTED", "The log-file path is derived at runtime and its permissions have not been verified");
   }
 
   const channel = runtimeEvidence.updateStatus?.channel?.value ?? config.update?.channel;
@@ -1468,26 +1468,26 @@ function evaluate(
       checks,
       "OpenClaw-9-3",
       "NOT_TESTED",
-      `有效更新频道收集失败：${runtimeEvidence.updateStatusError}`,
+      `Failed to collect the effective update channel: ${runtimeEvidence.updateStatusError}`,
     );
   } else {
     observe(
       checks,
       "OpenClaw-9-3",
       ["stable", "beta"].includes(channel) ? "PASS" : "FAIL",
-      `有效更新频道=${channel || "未知"}`,
+      `Effective update channel=${channel || "unknown"}`,
     );
   }
   const registryResult = run("npm", ["config", "get", "registry"]);
   if (registryResult.status !== 0) {
-    observe(checks, "OpenClaw-9-3", "ERROR", `npm registry 收集失败：${failure(registryResult)}`);
+    observe(checks, "OpenClaw-9-3", "ERROR", `Failed to collect the npm registry: ${failure(registryResult)}`);
   } else {
     const registry = registryResult.stdout.trim();
     observe(
       checks,
       "OpenClaw-9-3",
       registry.startsWith("https://") ? "PASS" : "FAIL",
-      `npm registry 协议=${registry.split(":")[0] || "未知"}`,
+      `npm registry protocol=${registry.split(":")[0] || "unknown"}`,
     );
   }
   const clawHubScheme = clawHubProtocol();
@@ -1495,7 +1495,7 @@ function evaluate(
     checks,
     "OpenClaw-9-3",
     clawHubScheme === "https:" ? "PASS" : "FAIL",
-    `ClawHub registry 协议=${clawHubScheme?.replace(":", "") || "无效"}`,
+    `ClawHub registry protocol=${clawHubScheme?.replace(":", "") || "invalid"}`,
   );
   const provenance = runtimeEvidence.packageProvenance;
   if (provenance.error) {
@@ -1503,7 +1503,7 @@ function evaluate(
       checks,
       "OpenClaw-9-3",
       provenance.status || "NOT_TESTED",
-      `openclaw@${provenance.version || "未知"} 真实来源验证未通过：${provenance.error}`,
+      `Source verification failed for openclaw@${provenance.version || "unknown"}: ${provenance.error}`,
       {
         registryOrigin: provenance.registryOrigin,
         verification: "registry-signature-and-sigstore-provenance",
@@ -1514,7 +1514,7 @@ function evaluate(
       checks,
       "OpenClaw-9-3",
       "PASS",
-      `openclaw@${provenance.version}：SHA-512 integrity、npm registry 签名和 Sigstore/SLSA provenance 均已验证`,
+      `openclaw@${provenance.version}: SHA-512 integrity, npm registry signatures, and Sigstore/SLSA provenance were all verified`,
       {
         registryOrigin: provenance.registryOrigin,
         integrityAlgorithm: provenance.integrityAlgorithm,
@@ -1532,8 +1532,8 @@ function evaluate(
       "OpenClaw-11-1",
       configuredChannel ? "WARN" : "NOT_APPLICABLE",
       configuredChannel
-        ? "已配置频道使用隐式或插件自有策略，请复核原生审计发现"
-        : "未发现已配置并启用的频道",
+        ? "Configured Channels use implicit or plugin-specific policies; review native audit findings"
+        : "No configured and enabled Channel was found",
     );
   }
   for (const policy of policies) {
@@ -1584,10 +1584,10 @@ function summary(checks) {
 }
 
 function manualReviewInstruction(checkId, message) {
-  if (/日志文件路径由运行时推导/u.test(message)) {
-    return "由 OpenClaw Agent 只读定位当前版本实际日志文件，核对配置覆盖和运行时默认路径；记录脱敏文件元数据，或使用 --log-path <实际路径> 重跑 baseline 取得权限证据。";
+  if (/log-file path is derived at runtime/iu.test(message)) {
+    return "Have the OpenClaw Agent locate the actual log file for the current version using read-only methods and verify configuration overrides and runtime defaults. Record sanitized file metadata or rerun the baseline with --log-path <actual-path> to collect permission evidence.";
   }
-  return `由 OpenClaw Agent 针对 ${checkId} 使用当前版本 CLI、源码契约和定向只读主机命令收集证据，并写入 manual-review JSON；仍无法确认时保留 NOT_TESTED 并记录阻塞原因。`;
+  return `Have the OpenClaw Agent collect evidence for ${checkId} using the current CLI, source-code contracts, and targeted read-only host commands, then write it to the manual-review JSON file. If the result remains indeterminate, retain NOT_TESTED and record the blocker.`;
 }
 
 function collectManualReview(checks) {
@@ -1614,8 +1614,8 @@ function collectManualReview(checks) {
 }
 
 function printHuman(report) {
-  console.log(`OpenClaw 主机安全自检（${report.generatedAt}）`);
-  console.log(`OpenClaw：${report.openclawVersion}  主机：${report.platform}`);
+  console.log(`OpenClaw Host Security Self-Check (${report.generatedAt})`);
+  console.log(`OpenClaw: ${report.openclawVersion}  Host: ${report.platform}`);
   console.log(
     Object.entries(report.summary)
       .map(([key, value]) => `${key}=${value}`)
@@ -1624,13 +1624,13 @@ function printHuman(report) {
   for (const check of report.checks) {
     console.log(`\n[${check.status}] ${check.id} ${check.title}`);
     for (const observation of check.observations) {
-      console.log(`  - ${observation.status}：${observation.message}`);
+      console.log(`  - ${observation.status}: ${observation.message}`);
     }
   }
   if (report.manualReview.required) {
-    console.log("\n需要 OpenClaw 进一步手动复核：");
+    console.log("\nAdditional targeted OpenClaw review is required:");
     for (const item of report.manualReview.items) {
-      console.log(`  - ${item.checkId}：${item.requiredAction}`);
+      console.log(`  - ${item.checkId}: ${item.requiredAction}`);
     }
   }
 }
@@ -1645,7 +1645,7 @@ async function main() {
     }
     const versionResult = runOpenClaw(options, ["--version"]);
     if (versionResult.status !== 0) {
-      throw new Error(`OpenClaw CLI 执行失败：${failure(versionResult)}`);
+      throw new Error(`OpenClaw CLI execution failed: ${failure(versionResult)}`);
     }
     const config = {};
     const configErrors = [];
@@ -1714,10 +1714,10 @@ async function main() {
         try {
           sandboxes.push(parseJson(result.stdout));
         } catch (error) {
-          configErrors.push(`sandbox explain ${agentId || "默认 Agent"}：${error.message}`);
+          configErrors.push(`sandbox explain ${agentId || "default Agent"}: ${error.message}`);
         }
       } else {
-        configErrors.push(`sandbox explain ${agentId || "默认 Agent"}：${failure(result)}`);
+        configErrors.push(`sandbox explain ${agentId || "default Agent"}: ${failure(result)}`);
       }
     }
     const runtimeEvidence = {
@@ -1766,7 +1766,11 @@ async function main() {
       stateDir: options.stateDir,
       configPath: options.configPath,
       reportPaths: { json: options.output || null, markdown: null },
-      excludedScope: ["外部网络可达性", "真实的未授权第三方 IM 账号", "远程 SIEM/日志投递"],
+      excludedScope: [
+        "External network reachability",
+        "Real unauthorized third-party IM accounts",
+        "Remote SIEM/log delivery",
+      ],
       summary: summary(checks),
       checks,
       manualReview: collectManualReview(checks),
@@ -1790,7 +1794,7 @@ async function main() {
     if (options?.json) {
       console.log(JSON.stringify(payload, null, 2));
     } else {
-      console.error(`错误（ERROR）：${error.message}`);
+      console.error(`Error (ERROR): ${error.message}`);
     }
     return 2;
   }
