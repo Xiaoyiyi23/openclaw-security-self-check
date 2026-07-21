@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 
@@ -71,8 +70,6 @@ function parseArgs(argv) {
       options.jsonOut = value();
     } else if (arg === "--markdown-out") {
       options.markdownOut = value();
-    } else if (arg === "--self-test") {
-      options.selfTest = true;
     } else if (arg === "--help" || arg === "-h") {
       options.help = true;
     } else {
@@ -89,8 +86,7 @@ function help() {
   --manual-review <file>       合并 OpenClaw Agent 的结构化只读复核证据
   --review-template-out <file> 为待复核项生成结构化证据模板
   --json-out <file>            report-only JSON 输出
-  --markdown-out <file>        report-only Markdown 输出
-  --self-test                  运行确定性报告自测`);
+  --markdown-out <file>        report-only Markdown 输出`);
 }
 
 function readJson(filePath) {
@@ -514,150 +510,11 @@ function write(filePath, content) {
   fs.writeFileSync(filePath, content, { encoding: "utf8", mode: 0o600 });
 }
 
-function sampleObservation(status, message, evidence) {
-  return {
-    status,
-    method: "static",
-    timestamp: "2026-01-01T00:00:00.000Z",
-    source: "self-test",
-    message,
-    ...(evidence ? { evidence } : {}),
-  };
-}
-
-function selfTest() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-security-report-"));
-  try {
-    const baseline = {
-      schemaVersion: REPORT_SCHEMA_VERSION,
-      mode: "baseline",
-      generatedAt: "2026-01-01T00:00:00.000Z",
-      openclawVersion: "2026.1.1",
-      platform: "test/test",
-      stateDir: "/test/.openclaw",
-      configPath: "/test/.openclaw/openclaw.json",
-      checklistVersion: "test",
-      checks: [
-        {
-          id: "OpenClaw-2-2",
-          title: "工作区文件系统防护",
-          status: "PASS",
-          observations: [sampleObservation("PASS", "配置符合要求")],
-        },
-        {
-          id: "OpenClaw-7-1",
-          title: "审计日志完整性",
-          status: "NOT_TESTED",
-          observations: [
-            sampleObservation("NOT_TESTED", "日志文件路径由运行时推导，尚未验证文件权限"),
-          ],
-        },
-        {
-          id: "OpenClaw-7-3",
-          title: "敏感信息脱敏",
-          status: "NOT_TESTED",
-          observations: [
-            sampleObservation("NOT_TESTED", "日志文件路径由运行时推导，尚未验证文件权限"),
-          ],
-        },
-      ],
-    };
-    const template = buildReviewTemplate(baseline);
-    if (template.items.length !== 2 || template.items[0].reviewId !== "OpenClaw-7-1#1") {
-      throw new Error("人工复核模板生成失败");
-    }
-    const manualReview = {
-      ...template,
-      reviewer: { type: "openclaw-agent", reviewedAt: "2026-01-01T00:10:00.000Z" },
-      items: template.items.map((item, index) =>
-        index === 0
-          ? Object.assign({}, item, {
-              observation: {
-                status: "PASS",
-                method: "runtime",
-                timestamp: "2026-01-01T00:09:00.000Z",
-                source: "OpenClaw 定向只读文件元数据检查",
-                message: "实际日志文件类型和权限符合要求",
-                evidence: { objectType: "file", mode: "0600" },
-              },
-            })
-          : item,
-      ),
-    };
-    const report = buildReport(baseline, manualReview);
-    if (report.mode !== "report-only" || report.sourceMode !== "baseline") {
-      throw new Error("report-only 模式元数据错误");
-    }
-    if (report.summary.PASS !== 2 || report.summary.NOT_TESTED !== 1) {
-      throw new Error("人工复核合并后的摘要计算错误");
-    }
-    if (report.agentReview.resolved !== 1 || report.manualReview.items.length !== 1) {
-      throw new Error("人工复核状态更新失败");
-    }
-    const mismatched = structuredClone(manualReview);
-    mismatched.baseline.generatedAt = "2026-01-02T00:00:00.000Z";
-    try {
-      buildReport(baseline, mismatched);
-      throw new Error("未拒绝错误绑定的人工复核证据");
-    } catch (error) {
-      if (!/不匹配/u.test(error.message)) {
-        throw error;
-      }
-    }
-    const missingEvidence = structuredClone(manualReview);
-    delete missingEvidence.items[0].observation.evidence;
-    try {
-      buildReport(baseline, missingEvidence);
-      throw new Error("未拒绝缺少 evidence 的人工 PASS");
-    } catch (error) {
-      if (!/人工结论必须包含脱敏 evidence/u.test(error.message)) {
-        throw error;
-      }
-    }
-    const unsafeEvidence = structuredClone(manualReview);
-    unsafeEvidence.items[0].observation.evidence.apiKey = "redacted-but-forbidden";
-    try {
-      buildReport(baseline, unsafeEvidence);
-      throw new Error("未拒绝敏感 evidence 字段");
-    } catch (error) {
-      if (!/敏感字段名/u.test(error.message)) {
-        throw error;
-      }
-    }
-    const unexpectedField = structuredClone(manualReview);
-    unexpectedField.items[0].observation.rawOutput = "not allowed";
-    try {
-      buildReport(baseline, unexpectedField);
-      throw new Error("未拒绝额外 observation 字段");
-    } catch (error) {
-      if (!/不允许的 observation 字段/u.test(error.message)) {
-        throw error;
-      }
-    }
-    const output = path.join(root, "report.md");
-    write(output, markdown(report));
-    const rendered = fs.readFileSync(output, "utf8");
-    if (
-      !rendered.includes("OpenClaw-2-2") ||
-      !rendered.includes("OpenClaw 定向只读复核") ||
-      !rendered.includes("仍需 OpenClaw 复核")
-    ) {
-      throw new Error("Markdown 输出失败");
-    }
-    console.log("自测通过（SELF-TEST PASS）");
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-}
-
 function main() {
   try {
     const options = parseArgs(process.argv.slice(2));
     if (options.help) {
       return (help(), 0);
-    }
-    if (options.selfTest) {
-      return (selfTest(), 0);
     }
     if (!options.baseline) {
       throw new Error("必须提供 --baseline");

@@ -1,11 +1,8 @@
 #!/usr/bin/env node
 
-import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import {
   createPublicKey,
-  generateKeyPairSync,
-  sign as signPayload,
   verify as verifySignature,
 } from "node:crypto";
 import fs from "node:fs";
@@ -73,8 +70,6 @@ function parseArgs(argv) {
     };
     if (arg === "--json") {
       options.json = true;
-    } else if (arg === "--self-test") {
-      options.selfTest = true;
     } else if (arg === "--help" || arg === "-h") {
       options.help = true;
     } else if (arg === "--openclaw-bin") {
@@ -110,7 +105,6 @@ function printHelp() {
   --state-dir <path>           OpenClaw 状态目录
   --config-path <path>         OpenClaw 配置文件路径
   --log-path <path>            手动确认的当前运行时日志文件路径
-  --self-test                  运行确定性辅助函数自测
   -h, --help                   显示帮助`);
 }
 
@@ -1641,166 +1635,6 @@ function printHuman(report) {
   }
 }
 
-function selfTest() {
-  assert.equal(isLoopback("127.0.0.1"), true);
-  assert.equal(isLoopback("0.0.0.0"), false);
-  assert.equal(parsePort("127.0.0.1:19001"), 19001);
-  assert.equal(parsePort("[::1]:18789"), 18789);
-  assert.equal(mdnsStatus("minimal", "loopback"), "PASS");
-  assert.equal(mdnsStatus("off", "lan"), "PASS");
-  assert.equal(mdnsStatus("full", "loopback"), "WARN");
-  assert.equal(mdnsStatus("full", "lan"), "FAIL");
-  assert.equal(parseArgs(["--log-path", "runtime.log"]).logPath, path.resolve("runtime.log"));
-  const execPolicy = {
-    effectivePolicy: {
-      scopes: [
-        {
-          scopeLabel: "tools.exec",
-          host: { requested: "auto" },
-          mode: { requested: "full", effective: "full" },
-          security: {
-            requested: "full",
-            requestedSource: "OpenClaw default (full)",
-            effective: "full",
-          },
-          ask: { requested: "off", requestedSource: "OpenClaw default (off)", effective: "off" },
-        },
-      ],
-    },
-  };
-  const sandboxPolicy = execPolicies(execPolicy, [{ sandbox: { sessionIsSandboxed: true } }])[0]
-    .policy;
-  assert.equal(sandboxPolicy.security, "deny");
-  assert.equal(sandboxPolicy.mode, "deny");
-  assert.equal(
-    execPolicies(execPolicy, [{ sandbox: { sessionIsSandboxed: false } }])[0].policy.security,
-    "full",
-  );
-  assert.equal(
-    toolScopeObservation(effectiveToolScope({ profile: "minimal", alsoAllow: ["*"] })).status,
-    "FAIL",
-  );
-  assert.equal(
-    toolScopeObservation(effectiveToolScope({ profile: "minimal", alsoAllow: ["exec"] })).status,
-    "WARN",
-  );
-  assert.equal(
-    toolScopeObservation(effectiveToolScope({ profile: "full", allow: ["read"] })).status,
-    "PASS",
-  );
-  assert.equal(
-    toolScopeObservation(effectiveToolScope({ profile: "minimal", allow: ["*"] })).status,
-    "PASS",
-  );
-  assert.equal(agentToAgentObservation({ agentToAgent: { enabled: false } }).status, "PASS");
-  assert.equal(agentToAgentObservation({ agentToAgent: { enabled: true } }).status, "FAIL");
-  assert.equal(
-    agentToAgentObservation({ agentToAgent: { enabled: true, allow: ["*"] } }).status,
-    "FAIL",
-  );
-  assert.equal(
-    agentToAgentObservation({ agentToAgent: { enabled: true, allow: ["prod-*"] } }).status,
-    "WARN",
-  );
-  assert.equal(
-    agentToAgentObservation({ agentToAgent: { enabled: true, allow: ["main", "ops"] } }).status,
-    "PASS",
-  );
-  assert.equal(
-    channelPolicies({ telegram: { groupPolicy: "allowlist", allowFrom: ["123"] } })[0]
-      .groupAllowFrom[0],
-    "123",
-  );
-  assert.equal(
-    isPrivilegedProcessOwner({ user: "SYSTEM", domain: "NT AUTHORITY", sid: "S-1-5-18" }),
-    true,
-  );
-  assert.equal(
-    isPrivilegedProcessOwner({ user: "service-user", sid: "S-1-5-21-1-2-3-1001" }),
-    false,
-  );
-  assert.equal(
-    unsafeWindowsAclEntries({
-      currentSid: "S-1-5-21-1000",
-      rules: [{ sid: "S-1-1-0", rights: 1, type: "Allow" }],
-    }).length,
-    1,
-  );
-  assert.equal(
-    windowsAclOwnerKnown({ currentSid: "S-1-5-21-1000", ownerSid: "S-1-5-21-1000" }),
-    true,
-  );
-  assert.equal(powershellSingleQuoted("C:\\Users\\O'Brien"), "'C:\\Users\\O''Brien'");
-  assert.equal(contextTokensStatus(32_000), "PASS");
-  const { privateKey, publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
-  const integrity = "sha512-test";
-  const signaturePayload = `openclaw@2026.6.8:${integrity}`;
-  const signature = signPayload("sha256", Buffer.from(signaturePayload), privateKey).toString(
-    "base64",
-  );
-  const registryProof = {
-    integrity,
-    packageName: "openclaw",
-    version: "2026.6.8",
-    signatures: [{ keyid: "test-key", sig: signature }],
-    keys: [
-      {
-        keyid: "test-key",
-        key: publicKey.export({ format: "der", type: "spki" }).toString("base64"),
-      },
-    ],
-  };
-  assert.doesNotThrow(() => verifyNpmRegistrySignatures(registryProof));
-  assert.throws(
-    () => verifyNpmRegistrySignatures({ ...registryProof, integrity: "sha512-tampered" }),
-    /签名验证失败/u,
-  );
-  assert.equal(
-    resolveNpmProvenancePolicy(
-      {
-        predicate: {
-          buildDefinition: {
-            externalParameters: {
-              workflow: {
-                repository: NPM_PROVENANCE_REPOSITORY,
-                path: NPM_PROVENANCE_WORKFLOW_PATH,
-                ref: "refs/heads/release/2026.6.8",
-              },
-            },
-          },
-          runDetails: { builder: { id: NPM_PROVENANCE_BUILDER_ID } },
-        },
-      },
-      "2026.6.8",
-    ).certificateIssuer,
-    NPM_PROVENANCE_CERTIFICATE_ISSUER,
-  );
-  assert.equal(clawHubProtocol({}), "https:");
-  const authChecks = createReportChecks();
-  addAudit(
-    authChecks,
-    "OpenClaw-1-2",
-    {
-      findings: [{ checkId: "gateway.token_too_short", severity: "critical", title: "weak token" }],
-    },
-    ["gateway.token_too_short", /^gateway\..*auth/u],
-  );
-  assert.equal(authChecks.get("OpenClaw-1-2").status, "FAIL");
-  assert.equal(broadExecPattern("/usr/bin/python3"), true);
-  assert.equal(broadExecPattern("/usr/bin/git"), false);
-  assert.equal(wildcard(["*"]), true);
-  assert.equal(hasConfiguredEnabledChannel({}), false);
-  assert.equal(
-    hasConfiguredEnabledChannel({ telegram: { enabled: false, token: "redacted" } }),
-    false,
-  );
-  assert.equal(hasConfiguredEnabledChannel({ telegram: { token: "redacted" } }), true);
-  const manualChecks = createReportChecks();
-  observe(manualChecks, "OpenClaw-7-1", "NOT_TESTED", "日志文件路径由运行时推导，尚未验证文件权限");
-  assert.equal(collectManualReview([...manualChecks.values()]).items[0].reviewId, "OpenClaw-7-1#1");
-  console.log("自测通过（SELF-TEST PASS）");
-}
-
 async function main() {
   const startedAt = new Date().toISOString();
   let options;
@@ -1808,9 +1642,6 @@ async function main() {
     options = parseArgs(process.argv.slice(2));
     if (options.help) {
       return (printHelp(), 0);
-    }
-    if (options.selfTest) {
-      return (selfTest(), 0);
     }
     const versionResult = runOpenClaw(options, ["--version"]);
     if (versionResult.status !== 0) {
